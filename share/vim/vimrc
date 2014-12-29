@@ -1,0 +1,111 @@
+" vim: foldmethod=marker foldmarker={{{,}}}
+
+if v:lang =~ "utf8$" || v:lang =~ "UTF-8$"
+   set fileencodings=utf-8,latin1
+endif
+
+if $COLORTERM == "gnome-terminal"
+    set t_Co=256
+elseif &term=="xterm"
+    set t_Co=8
+    set t_Sb=[4%dm
+    set t_Sf=[3%dm
+endif
+
+" Switch syntax highlighting on, when the terminal has colors
+if &t_Co > 2 || has("gui_running")
+    syntax on
+    set hlsearch
+endif
+
+
+set nocompatible        " Use Vim defaults (much better!)
+set bs=indent,eol,start " allow backspacing over everything in insert mode
+set viminfo='20,\"50    " read/write a .viminfo file, don't store more than 50 lines of registers
+set history=50          " keep 50 lines of command line history
+set mouse=a             " enable mouse
+"set foldmethod=marker   " sets fold method by marker defined by foldmarker string
+set makeprg=synmake     " use Synopsys synmake as default make
+"set modelines=10       " sets number of lines at the beggining of a file that is checked for vim seetings
+"let c_space_errors=1   " show trailing white spaces and spaces before <Tab>
+set ruler               " show the cursor position all the time
+set incsearch           " enable search as you type
+set noerrorbells        " don't beep on errors (seems to be not enought)
+set visualbell          " switch to blink-screen, to disable beep
+set t_vb=               " switch off that blink-screen too :)
+"set ai                 " always set autoindenting on
+"set backup             " keep a backup file
+
+"Since Tab and trailing spaces are prohibited by our coding style
+"force vim to display them to make more notable to users
+set listchars=tab:>-,trail:_
+set list
+
+set completeopt-=preview
+
+" Tabulation and indenting options according to coding style
+set expandtab
+set cindent
+set shiftwidth=4
+set tabstop=4
+set softtabstop=4
+"Settings for C++ files are set by below autocmd
+
+augroup mine
+    autocmd!
+    "Set tab to 4 if Tcl or vim file is opened
+    autocmd FileType tcl,vim set shiftwidth=4 tabstop=4 softtabstop=4
+    "Switch back to 8 for cpp files
+    autocmd FileType c,cpp set shiftwidth=8 tabstop=8 softtabstop=8
+
+    " When editing a file, always jump to the last cursor position
+    autocmd BufReadPost *
+    \ if line("'\"") > 0 && line ("'\"") <= line("$") |
+    \   exe "normal! g'\"" |
+    \ endif
+augroup END
+
+source $VIM/plugins.vim " sourcing plugins
+
+"{{{ Jump between tabs with Alt+1...9 like in terminal
+
+let i = 1
+while i < 10
+    exec "nnoremap <A-" . i . "> <Esc>" . i . "gt"
+    let i += 1
+endwhile
+
+"}}}
+
+" {{{ Functionality to jump between corresponding C++ files
+
+let s:SupExts = ['h', 'c', 'hpp', 'cpp', 'hxx', 'cxx']
+
+function s:FindCorrespondingFile()
+    let ext = expand("%:e")
+    let i = index(s:SupExts, ext)
+    if i == -1
+        echohl ErrorMsg
+        echo "Only {" . join(s:SupExts, ", ") . "} files are supported."
+        echohl None
+        return
+    endif
+    let ext = (i % 2 == 0) ? s:SupExts[i + 1] : s:SupExts[i - 1]
+    let fn = expand("%:r") . "." . ext
+    if glob(fn) == ""
+        echohl ErrorMsg
+        echo "Corresponding file not found."
+        echohl None
+        return
+    endif
+    let cw = expand("<cword>")
+    exec "edit " . fn
+    if cw != ""
+        call search('\<' . cw . '\>')
+        normal zz
+    endif
+endfunction
+
+nnoremap gc :call <SID>FindCorrespondingFile()<CR>
+
+" }}}

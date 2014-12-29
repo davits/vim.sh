@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# Get this script's directory
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
+UTILS=$DIR/share/utils/bin
+
+# Setting VIMRUNTIME will also set VIM to "$VIMRUNTIME/.." folder,
+# where our vimrc is located
+export VIMRUNTIME=$DIR/share/vim/vim74
+
+# Adding Vim utils path where custom checkers are located
+# for example verilator or nagelfar
+PATH=$UTILS:$PATH
+# Set correct python environment, since some users manage to screw it.
+unset PYTHONHOME
+unset PYTHONPATH
+PATH=/depot/python/bin:$PATH
+
+export PATH
+
+# Original Vim executable should be renamed.
+vim_command=$DIR/bin/orig_vim
+
+# Vim's working mode is defined via executable/link name,
+# i.e. gvim, evim (those are actually links).
+# We're doing the same here:
+name=$(basename ${0})
+
+if [[ $name == *g* ]]; then
+    vim_command+=\ -g
+fi
+
+if [[ $name == r* ]]; then
+    vim_command+=\ -Z
+fi
+
+if [[ $name == *diff ]]; then
+    vim_command+=\ -d
+fi
+
+if [[ $name == *view ]]; then
+    vim_command+=\ -R
+fi
+
+if [[ $name == "ex" ]]; then
+    vim_command+=\ -e
+elif [[ $name == e* ]]; then
+    vim_command+=\ -y
+fi
+
+$vim_command "$@"
